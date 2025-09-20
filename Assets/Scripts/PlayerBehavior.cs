@@ -77,7 +77,6 @@ public class PlayerBehavior : MonoBehaviour
         if (!cameraBobbing && bobDelay >= bobFreq && isMoving)
         {
             cameraBobbing = true;
-            audioSource.PlayOneShot(audio_footstep);
         }
 
         if (cameraBobbing)
@@ -103,6 +102,7 @@ public class PlayerBehavior : MonoBehaviour
             if (bobDelay > bobFreq)
             {
                 cameraBobbing = false;
+                if (moveAction.ReadValue<Vector2>() != Vector2.zero) audioSource.PlayOneShot(audio_footstep);
             }
         }
     }

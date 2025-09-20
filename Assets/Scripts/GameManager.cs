@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using PixelCrushers.DialogueSystem;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -36,7 +37,7 @@ public class GameManager : MonoBehaviour
                     {
                         for (int j = 0; j < 100; j++)
                         {
-                            GameObject obe = Instantiate(obelisk, new Vector3(i * 10 + r, (10 * z) + 3.92f, j * 10 + r), Quaternion.identity);
+                            GameObject obe = Instantiate(obelisk, new Vector3(i * 10 + r, (10 * z) + 3.92f, j * 10 + r), Quaternion.identity, GameObject.Find("ObeliskGarden").transform);
                             if (UnityEngine.Random.value < 0.01f)
                             {
                                 obe.transform.GetChild(0).gameObject.SetActive(true);
@@ -70,12 +71,13 @@ public class GameManager : MonoBehaviour
 
     public bool InteractProp(PropBehavior prop)
     {
-        if (dialogueCoroutine != null) { StopCoroutine(dialogueCoroutine); }
-        
-        string newDialogue;   
-        newDialogue = prop.GetDialogueLine();
-        dialogue.color = prop.dialogueColor;
-        dialogueCoroutine = StartCoroutine(PlayDialogue(newDialogue, prop.voice, prop.audioSource));
+        // if (dialogueCoroutine != null) { StopCoroutine(dialogueCoroutine); }
+
+        prop.GetComponent<DialogueSystemTrigger>().OnUse();        
+        // string newDialogue;   
+        // newDialogue = prop.GetDialogueLine();
+        // dialogue.color = prop.dialogueColor;
+        // dialogueCoroutine = StartCoroutine(PlayDialogue(newDialogue, prop.voice, prop.audioSource));
         return true;
     }
 
