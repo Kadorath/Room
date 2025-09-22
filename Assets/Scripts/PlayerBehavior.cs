@@ -1,3 +1,5 @@
+using System.Collections;
+using PixelCrushers.DialogueSystem;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -35,6 +37,10 @@ public class PlayerBehavior : MonoBehaviour
     // UI
     public GameObject interactPrompt;
 
+    // Dialogue Fields
+    private Transform focusTarget;
+    private Coroutine focusCoroutine;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -49,22 +55,23 @@ public class PlayerBehavior : MonoBehaviour
 
         cameraHeight = viewCam.transform.localPosition.y;
         bobDelay = bobFreq;
+
+        DialogueManager.instance.conversationEnded += OnDialogueClose;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (!lockView)
-        {
-            Vector2 mouseDelta = lookAction.ReadValue<Vector2>() * lookSensitivity;
-            viewCam.transform.RotateAround(viewCam.transform.position, viewCam.transform.right, -mouseDelta.y);
-            transform.RotateAround(viewCam.transform.position, Vector3.up, mouseDelta.x);
-        }
+        if (lockView) { return; }
+        Vector2 mouseDelta = lookAction.ReadValue<Vector2>() * lookSensitivity;
+        viewCam.transform.RotateAround(viewCam.transform.position, viewCam.transform.right, -mouseDelta.y);
+        transform.RotateAround(viewCam.transform.position, Vector3.up, mouseDelta.x);
         interactPrompt.SetActive(Physics.Raycast(viewCam.transform.position, viewCam.transform.forward, interactDist, LayerMask.GetMask("Prop")));
     }
 
     void FixedUpdate()
     {
+        if (lockView) { return; }
         Vector2 moveIn = moveAction.ReadValue<Vector2>() * speed;
         rb.AddForce(Physics.gravity * (gravityScale - 1), ForceMode.Acceleration);
         rb.linearVelocity = transform.forward * moveIn.y + transform.right * moveIn.x + transform.up * rb.linearVelocity.y;
@@ -109,11 +116,49 @@ public class PlayerBehavior : MonoBehaviour
 
     public void OnInteract()
     {
+        if (lockView) { return; }
         RaycastHit hit;
         if (Physics.Raycast(viewCam.transform.position, viewCam.transform.forward, out hit, interactDist, LayerMask.GetMask("Prop")))
         {
-            GameManager.instance.InteractProp(hit.collider.gameObject.GetComponent<PropBehavior>());
+            if (GameManager.instance.InteractProp(hit.collider.gameObject.GetComponent<PropBehavior>()))
+            {
+                FocusCamera(hit.transform);
+            }
         }
+    }
+
+    private void FocusCamera(Transform target)
+    {
+        lockView = true;
+        interactPrompt.SetActive(false);
+        Transform head = target.Find("HeadPoint");
+        focusCoroutine = StartCoroutine(SlerpCameraToTarget(head ? head : target, 1f));
+    }
+
+    public void OnDialogueClose(Transform actor)
+    {
+        lockView = false;
+        if (focusCoroutine != null)
+            StopCoroutine(focusCoroutine);
+    }
+
+    IEnumerator SlerpCameraToTarget(Transform target, float duration)
+    {
+        float elapsed = 0f;
+        Vector3 a = viewCam.transform.forward;
+        Vector3 b = (target.position - viewCam.transform.position).normalized;
+        while (elapsed < duration)
+        {
+            float cubic = 1f - Mathf.Pow(1 - elapsed / duration, 3);
+            viewCam.transform.LookAt(viewCam.transform.position + Vector3.Slerp(a, b, cubic));
+
+            elapsed += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+
+        transform.localRotation = Quaternion.Euler(0f, viewCam.transform.localRotation.eulerAngles.y + transform.rotation.eulerAngles.y, 0f);
+        viewCam.transform.localRotation = Quaternion.Euler(viewCam.transform.localRotation.eulerAngles.x, 0f, 0f);
+
     }
 
     public void OnJump()

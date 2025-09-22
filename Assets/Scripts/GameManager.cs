@@ -11,10 +11,11 @@ public class GameManager : MonoBehaviour
     public static GameManager instance { get; private set; }
 
     public TMP_Text dialogue;
-    private Coroutine dialogueCoroutine;
 
     public Transform church;
     public GameObject obelisk;
+
+    public PlayerBehavior player;
 
     public bool enableObelisks = true;
 
@@ -60,7 +61,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        
+        player = GameObject.Find("Player").GetComponent<PlayerBehavior>();
     }
 
     // Update is called once per frame
@@ -69,31 +70,17 @@ public class GameManager : MonoBehaviour
 
     }
 
+    // Returns true if prop has DialogueSystemTrigger, false otherwise
     public bool InteractProp(PropBehavior prop)
     {
-        // if (dialogueCoroutine != null) { StopCoroutine(dialogueCoroutine); }
 
-        prop.GetComponent<DialogueSystemTrigger>().OnUse();        
-        // string newDialogue;   
-        // newDialogue = prop.GetDialogueLine();
-        // dialogue.color = prop.dialogueColor;
-        // dialogueCoroutine = StartCoroutine(PlayDialogue(newDialogue, prop.voice, prop.audioSource));
-        return true;
-    }
-
-    private IEnumerator PlayDialogue(string text, AudioClip v, AudioSource audioSource)
-    {
-        dialogue.text = "";
-        for (int i = 0; i < text.Length; i++)
+        DialogueSystemTrigger dst = prop.GetComponent<DialogueSystemTrigger>();
+        if (dst)
         {
-            dialogue.text += text[i];
-            if (UnityEngine.Random.value < 0.5) { audioSource.PlayOneShot(v); }
-            yield return new WaitForSeconds(0.05f);
+            dst.OnUse();
+            return true;
         }
 
-        yield return new WaitForSeconds(3f);
-
-        dialogue.text = "";
-        dialogueCoroutine = null;
+        return false;
     }
 }
